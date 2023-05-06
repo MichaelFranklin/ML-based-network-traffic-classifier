@@ -1,13 +1,18 @@
 import argparse
 import logging
-
 import neptune
+import sys
 from sklearn.model_selection import train_test_split
 from flow_parsing import read_dataset
 from evaluation_utils.classification import Reporter
+
+ 
 from sklearn_classifiers.featurizer import Featurizer, TransformerFeatureExtractor
 from sklearn_classifiers.clf_utils import read_classifier_settings, initialize_classifiers, fit_optimal_classifier
 from settings import BASE_DIR, DEFAULT_PACKET_LIMIT_PER_FLOW, NEPTUNE_PROJECT, TARGET_CLASS_COLUMN, RANDOM_SEED
+
+
+# import pdb; pdb.set_trace()
 
 logger = logging.getLogger(__name__)
 
@@ -102,16 +107,23 @@ def main():
 
     logger.info('Loading csv file..')
 
+    print("----",sys._getframe().f_lineno)
     df_train = read_dataset(args.train_dataset, fill_na=True)
     if args.test_dataset:
+        print("----",sys._getframe().f_lineno)
         df_test = read_dataset(args.test_dataset, fill_na=True)
     else:
+        print("------------------------",sys._getframe().f_lineno)
+        print("df_train:\n", df_train)
+        print("df_train[args.target_column]:\n",df_train[args.target_column])
+        print("------------------------",sys._getframe().f_lineno)
         df_train, df_test = train_test_split(df_train,
                                              stratify=df_train[args.target_column],
                                              test_size=1 / 4,
                                              random_state=RANDOM_SEED)
 
     if args.transformer_model_path:
+        print("----",sys._getframe().f_lineno)
         featurizer = TransformerFeatureExtractor(
             args.transformer_model_path,
             args.packet_num,
@@ -119,6 +131,7 @@ def main():
             reinitialize=args.reinitialize
         )
     else:
+        print("----",sys._getframe().f_lineno)
         featurizer = Featurizer(
             packet_num=args.packet_num,
             cont_features=None if args.continuous else [],
@@ -137,16 +150,20 @@ def main():
     clfs = initialize_classifiers(classifier_settings)
 
     for model_name, model_holder in clfs.items():
+        print("model_name:",model_name)
+        print("model_holder:",model_holder)
         if args.search_hyper_parameters:
             fit_optimal_classifier(model_holder, X_train, y_train)
         else:
             model_holder.classifier.fit(X_train, y_train)
         y_pred = model_holder.classifier.predict(X_test)
+        print("model_holder.name:",model_holder.name)
         reporter = Reporter(y_test, y_pred, model_holder.name, featurizer.target_encoder.classes_)
 
         report_file = f'report_{model_holder.name}.csv'
         report = reporter.clf_report(save_to=report_file)
         print(report)
+        reporter.plot_conf_matrix()
 
         if args.log_neptune:
             neptune.init(NEPTUNE_PROJECT)

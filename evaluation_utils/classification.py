@@ -31,9 +31,10 @@ class Reporter:
     def clf_report(self, as_dict=False, save_to=None):
         def to_df(report):
             return pd.DataFrame(report).T
-
+        print("self.predicted:",self.predicted)
+        print("self.target_classes size:",self.target_classes.shape)
         report = classification_report(self.true, self.predicted,
-                                       target_names=self.target_classes,
+                                       target_names=self.target_classes[0:5],
                                        digits=3,
                                        output_dict=True)
 
