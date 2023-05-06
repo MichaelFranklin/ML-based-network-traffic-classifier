@@ -4,7 +4,7 @@ from collections import Counter
 import ngtpy
 import numpy as np
 import pandas as pd
-import puffinn
+import puffin
 from scipy.spatial.distance import cdist
 from sklearn.base import BaseEstimator
 from sklearn.preprocessing import normalize
